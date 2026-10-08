@@ -1,0 +1,26 @@
+project:
+  type: website
+  resources:
+    - data/*.csv
+    - assets/pdu_logo.svg
+
+website:
+  title: "Serological modelling workshop"
+  search: true
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - text: Sessions
+        menu:
+          - href: sessions/serology-introduction.qmd
+            text: "Introduction to serology"
+          - href: sessions/serocatalytic-models-practical.qmd
+            text: "Serocatalytic models"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: true
+    css: styles.css

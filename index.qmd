@@ -1,0 +1,23 @@
+---
+title: "Serological modelling workshop"
+---
+
+Welcome to the workshop practicals.
+
+The aim of this course is to understand and apply key concepts in mathematical modelling of serological data. This course is intended for public health professionals or mathematicians/statisticians with an interest in infectious disease modelling. 
+
+Throughout the course we will be using the `R` programming language. During the practicals we recommend **typing out the code** (rather than copying and pasting it) as this is slower and helps you to learn. We also recommend avoiding asking large language models to write code for you during the course - while this can be useful in understanding errors in your code (if you take time to read through the response) this will not help you learn and understand.
+
+<div class="workshop-logos">
+![PDU logo](assets/pdu_logo.svg){.workshop-logo}
+</div>
+
+Use the navigation tabs above to move between sessions.
+
+## Sessions
+
+### Session 1: Analysing serological data
+[Open Session 1](sessions/serology-introduction.qmd)
+
+### Session 2: Serocatalytic Models
+[Open Session 2](sessions/serocatalytic-models-practical.qmd)

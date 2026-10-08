@@ -1,0 +1,180 @@
+---
+title: "Session 2: Serocatalytic Models"
+format: html
+editor: visual
+execute:
+  warning: false
+  message: false
+---
+
+# Serocatalytic models practical
+
+## Introduction
+
+In this practical, we are going to be fitting serocatalytic models to cross-sectional serological data using the R package [RSero](%22https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012777#pcbi.1012777.ref024%22). In `RSero` the models are fitted to data using Markov Chain Monte Carlo implemented through `Stan`, a probabalistic programming language.
+
+## Objectives
+
+The aims of this practical are to:
+
+- Estimate the force of infection by fitting serocatalytic models to serological datasets using MCMC
+
+- Compare different models with different assumptions about historical transmission and decide which one fits the data best
+
+- Reconstruct past circulation of pathogens in the population
+
+## Set-up: load packages and datasets
+
+First, we will load in the R packages that we need
+
+```{r}
+library(Rsero)
+library(tidyverse)
+library(ggpubr) # we use this to arrange and save multiple plots together
+```
+
+and download the simulated cross-sectional serology datasets used in this practical:
+
+- [Simulated dataset 1](../data/simulated-data1.csv)
+- [Simulated dataset 2](../data/simulated-data2.csv)
+
+Each file contains a simulated dataset for 1000 participants, with sampling in 2024. The dataset has columns `participant_id`, `age`, and `serostatus` for 1,000 participants.
+
+```{r}
+data_1 <- read.csv("../data/simulated-data1.csv")
+data_2 <- read.csv("../data/simulated-data2.csv")
+```
+
+## Visualising the data
+
+Let's start with the first simulation dataset (`data+1`). We'll group the data into 10 year age bins and then visualise seroprevalence by age.
+
+```{r}
+agg_data_1 <- data_1 |> 
+  mutate(age_group = cut(
+      age,
+      breaks = c(seq(0, 70, by = 10), Inf),
+      labels = c(
+        "0-9", "10-19", "20-29", "30-39",
+        "40-49", "50-59", "60-69", "70+"),
+      right = FALSE)) |> 
+  group_by(age_group)  |> 
+  summarise(n = n(),
+            seropositive = sum(serostatus),
+            seroprevalence = mean(serostatus),
+            seroprevalence = seropositive / n,
+            ci_lower = binom.test(seropositive, n)$conf.int[1],
+            ci_upper = binom.test(seropositive, n)$conf.int[2], .groups = "drop")
+
+ggplot(agg_data_1) +
+  geom_point(aes(x = age_group, y = seroprevalence)) +
+  geom_errorbar(aes(x = age_group, ymin = ci_lower, ymax = ci_upper)) +
+  theme_minimal() +
+  labs(x = "Age group", y = "Seroprevalence")
+```
+
+## Fitting models with `RSero`
+
+Next, we will prepare the data for use with `RSero`. `RSero` needs data to be in `SeroData` format, which needs the participants' age at the time of sampling (`age_at_sampling`) and serostatus (`Y`).
+
+```{r}
+sero_data1 <- SeroData(age_at_sampling = data_1$age, Y = data_1$serostatus, sampling_year = 2024)
+sero_data2 <- SeroData(age_at_sampling = data_2$age, Y = data_2$serostatus, sampling_year = 2024)
+```
+
+We will now define some serocatalytic models to test.
+
+In `RSero` you can specify several different models of force-of-infection over time. We will look at the following.  
+- Constant. This is the simplest (classic) serocatalytic model which assumes a constant force of infection over time. This works well for endemic pathogens that circulate continuously in the population and are fully immunising.
+- Piecewise-constant. This is an extension of the classic model where we assume there have been several periods of constant force of infection. This would work well (for example) if an intervention had recently been introduced which lowered the force of infection at a particular point in time. 
+- Outbreak. This model describes pathogen with epidemic dynamics where there have been `K` epidemics in the past. The model will estimate the force of infection and the timing of `K` previous outbreaks, assuming that FOI can be described by `K` Gaussian-shaped curves.
+
+```{r}
+constant_model <- FOImodel(type = "constant")
+piecewise_model <- FOImodel(type = "piecewise", K = 2) # assuming there have been 2 phases with distinct force of infection
+outbreak_model <- FOImodel(type = "outbreak", K = 1) # assuming there has been 1 outbreak in the past
+```
+
+Now let's fit each model - this may take a few minutes.
+
+You should see output from Stan on your console showing you how the sampling is progressing for each model and potentially giving you some warnings about the fit.
+
+```{r, output = FALSE}
+constant_fit_1 <- fit(data = sero_data1, model = constant_model, iter = 1000, chains = 2)
+piecewise_fit_1 <- fit(data = sero_data1, model = piecewise_model, iter = 1000, chains = 2)
+outbreak_fit_1 <- fit(data = sero_data1, model = outbreak_model, iter = 1000, chains = 2)
+```
+
+## Comparing different models
+
+We now have three different model fits, with very different underlying assumptions about historical transmission. First let's compare how well each of them fit the data visually. We can do this using the `RSero` function `seroprevalence.fit()`.
+
+```{r}
+
+constant_plot <- seroprevalence.fit(constant_fit_1)
+piecewise_plot <- seroprevalence.fit(piecewise_fit_1)
+outbreak_plot <- seroprevalence.fit(outbreak_fit_1)
+
+ggarrange(
+  constant_plot,
+  piecewise_plot,
+  outbreak_plot,
+  ncol = 3,
+  labels = c("Constant", "Piecewise", "Outbreak"))
+
+```
+
+`RSero` makes it easy to compare these with the `compute_information_criteria` function. We will use leave-one-out cross validation to compare them (PSIS-LOO). This aims to answer the question - how well would this model predict an individual participant's serostatus if we left them out of the fit? The resulting score is called the `elpd` (higher = better predictions). Below, we'll use `loo_compare()` from the `loo` package in R to rank all of our models and give the difference in elpd from the best one
+
+```{r}
+constant_ic_1 <- compute_information_criteria(constant_fit_1)
+piecewise_ic_1 <- compute_information_criteria(piecewise_fit_1)
+outbreak_ic_1 <- compute_information_criteria(outbreak_fit_1)
+
+loo::loo_compare(constant_ic_1$PSIS_LOO, piecewise_ic_1$PSIS_LOO, outbreak_ic_1$PSIS_LOO)
+```
+
+From this we can tell that model 3 (outbreak model) is clearly the worst at explaining the data. However, models 1 and 2 seem very similar and there's a very small difference in elpd between them. Let's take a look at the estimated FOI for both.
+
+```{r}
+constant_foi <- plot(constant_fit_1, YLIM = 0.3)
+piecewise_foi <- plot(piecewise_fit_1, YLIM = 0.3)
+
+# Note we need the [[1]] here as RSero's plot function returns a list where the first element is the plot we need
+ggarrange(constant_foi[[1]],
+          piecewise_foi[[1]],
+          ncol = 2,
+          labels = c("Constant", "Piecewise"))
+```
+
+From these plots it's clear the piecewise model is estimating very similar FOI for the two time periods - in fact it looks almost identical to the constant model.
+
+We can also look at the estimated parameters for the piecewise model to see when the model thinks the FOI changes to a second level
+
+```{r}
+parameters_credible_intervals(piecewise_fit_1)
+```
+
+You can see here that this estimate is really uncertain, with a 95% credible interval ranging from 1980 to 2026.
+
+To decide between these two models we'll follow the principle of **parsimony**. That is, if two models perform equally well we should choose the simplest one as it's clear the added complexity is not needed.
+
+## Try it yourself
+
+In the next section you can follow the same analysis plan looking into `data_2`. How would you describe historical transmission of the pathogen in this dataset?
+
+::: {.callout-tip collapse="true"}
+## Hint
+
+Remember to have a look at what seroprevalence looks like by age, this will give you clues as to what models you might like to test.
+:::
+
+::: {.callout-tip collapse="true"}
+We set K=1 when using piecewise and outbreak models in the first part but you can change K to look at multiple change points in FOI or multiple outbreaks in the past.
+:::
+
+## Further reading
+
+- [RSero paper](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012777#pcbi.1012777.ref024%22)
+- [Salje et al 2016 - reconstructing historical CHIKV transmission in the Philippines](https://pmc.ncbi.nlm.nih.gov/articles/PMC4721913/)
+- [Hens et al 2009 - a nice review of serocatalytic models](https://www.cambridge.org/core/journals/epidemiology-and-infection/article/seventyfive-years-of-estimating-the-force-of-infection-from-current-status-data/FC65967F1DA0A28401A43BBD9927C32E)
