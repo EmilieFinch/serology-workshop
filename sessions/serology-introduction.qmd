@@ -18,11 +18,11 @@ The aims of this practical are to:
 
 - Load and analyse a serological dataset in R
 
-- Understand how changing the force of infection affects the proportion seropositive
+- Understand how changing the force of infection affects seroprevalence by age
 
 ## Set-up: load packages and datasets
 
-First, we will load in the R packages that we need
+First, we will load in the R packages and data that we need. Take a quick look at the serosurvey dataset we are using.
 
 ```{r}
 library(tidyverse)
@@ -46,8 +46,7 @@ sero_survey |>
   summarise(
     min_age = min(Age),
     max_age = max(Age),
-    mean_age = mean(Age)
-  )
+    mean_age = mean(Age))
 ```
 
 2.  What proportion of male participants are seropositive?
@@ -61,7 +60,7 @@ You can use `table()`
 ```{r}
 sero_survey |>
   filter(Sex == "Male") |>
-  summarise(prop_seropositive = mean(IgG))
+  summarise(seropos = sum(IgG == TRUE), n = n(), prop_seropositive = seropos/n)
 ```
 
 3.  What proportion of female participants are seropositive?
@@ -69,7 +68,7 @@ sero_survey |>
 ```{r}
 sero_survey |>
   filter(Sex == "Female") |>
-  summarise(prop_seropositive = mean(IgG))
+  summarise(seropos = sum(IgG == TRUE), n = n(), prop_seropositive = seropos/n)
 ```
 
 4.  Calculate the proportion seropositive by single age
@@ -77,13 +76,13 @@ sero_survey |>
 ::: {.callout-tip collapse="true"}
 ## Hint
 
-You can use a `for` loop
+You can use a `for` loop or `group_by` and `summarise`
 :::
 
 ```{r}
 prop_by_age <- sero_survey |>
   group_by(Age) |>
-  summarise(prop_seropositive = mean(IgG))
+  summarise(seropos = sum(IgG == TRUE), n = n(), prop_seropositive = seropos/n)
 
 prop_by_age |>
   ggplot(aes(x = Age, y = prop_seropositive)) +
@@ -92,8 +91,7 @@ prop_by_age |>
 
 5.  Using the following relationship, plot the expected proportion seropositive if there was a force of infection of 0.05 in a community:
 
-$$
-P(seropositive) = 1 - e^{(-\lambda \cdot age)}$$ \$\$
+$$ P(seropositive) = 1 - e^{(-\lambda \cdot age)}$$
 
 ::: {.callout-tip collapse="true"}
 ## Hint
@@ -105,10 +103,9 @@ Create an object `lambda = 0.05` and use a vector of ages between 1 and 15 `ages
 lambda <- 0.05
 ages <- 1:15
 
-expected_seropos <- tibble(
+expected_seropos <- data.frame(
   Age = ages,
-  prop_seropositive = 1 - exp(-lambda * ages)
-)
+  prop_seropositive = 1 - exp(-lambda * ages))
 
 expected_seropos |>
   ggplot(aes(x = Age, y = prop_seropositive)) +
@@ -124,17 +121,20 @@ prop_by_age |>
   geom_line(data = expected_seropos, colour = "red")
 ```
 
-7.  Try a few different values for $$\lambda$$ and find one that works well
+7.  Try a few different values for lambda and find one that works well
 
 ```{r}
 lambdas <- seq(0.01, 0.15, by = 0.01)
 
-expected_seropos_multi <- lambdas |>
-  map_dfr(\(lambda) tibble(
-    lambda = lambda,
-    Age = ages,
-    prop_seropositive = 1 - exp(-lambda * ages)
-  ))
+expected_seropos_multi <- data.frame()
+for (lambda in lambdas) {
+  expected_seropos_multi <- rbind(
+    expected_seropos_multi,
+    data.frame(
+      lambda = lambda,
+      Age = ages,
+      prop_seropositive = 1 - exp(-lambda * ages)))
+}
 
 prop_by_age |>
   ggplot(aes(x = Age, y = prop_seropositive)) +
@@ -142,27 +142,26 @@ prop_by_age |>
   geom_line(
     data = expected_seropos_multi,
     aes(group = lambda),
-    colour = "red", alpha = 0.4
-  )
+    colour = "red", alpha = 0.4)
 ```
 
 ## Stretch questions
 
-8.  Using this value of $$\lambda$$ calculate the proportion of 30 year olds you would expect to be seropositive
+8.  Using this value of lambda calculate the proportion of 30 year olds you would expect to be seropositive
 
 ```{r}
 lambda <- 0.05 # replace with the value of lambda you found above
 
-tibble(Age = 30) |>
+data.frame(Age = 30) |>
   mutate(prop_seropositive = 1 - exp(-lambda * Age))
 ```
 
-9.  Using this value of theta, calculate the probability of being infected for each age between 1 and 60
+9.  Using this value of lambda, calculate the probability of being infected for each age between 1 and 60
 
 ```{r}
 ages_60 <- 1:60
 
-prob_infected <- tibble(
+prob_infected <- data.frame(
   Age = ages_60,
   prob_infection = 1 - exp(-lambda * ages_60)
 )
@@ -189,10 +188,8 @@ pop_young <- prob_infected |>
     n_people = case_when(
       Age <= 10 ~ 20000,
       Age <= 50 ~ 10000,
-      TRUE ~ 0
-    ),
-    n_infected = n_people * prob_infection
-  )
+      TRUE ~ 0),
+    n_infected = n_people * prob_infection)
 
 pop_young |>
   summarise(total_infected = sum(n_infected))
