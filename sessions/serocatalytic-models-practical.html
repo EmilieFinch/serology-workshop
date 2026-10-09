@@ -348,8 +348,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output cell-output-stdout">
 <pre><code>  model elpd_diff se_diff p_worse       diag_diff diag_elpd
  model1       0.0     0.0      NA                          
- model2      -0.8     0.2    1.00 |elpd_diff| &lt; 4          
- model3    -133.1    13.9    1.00                          </code></pre>
+ model2      -1.1     0.2    1.00 |elpd_diff| &lt; 4          
+ model3    -133.9    14.0    1.00                          </code></pre>
 </div>
 </div>
 <p>From this we can tell that model 3 (outbreak model) is clearly the worst at explaining the data. However, models 1 and 2 seem very similar and there’s a very small difference in elpd between them. Let’s take a look at the estimated FOI for both.</p>
@@ -381,14 +381,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">parameters_credible_intervals</span>(piecewise_fit_1)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>                                        2.5%         50%       97.5%
-Annual Prob. Infection (in %)_1    0.4977057    4.410961    5.255145
-Year_ 2                         1981.4067510 2005.704625 2029.681020
-Annual Prob. Infection (in %)_2    3.0556615    4.647215    5.872510
-                                       mean
-Annual Prob. Infection (in %)_1    3.804773
-Year_ 2                         2007.260056
-Annual Prob. Infection (in %)_2    4.601266</code></pre>
+<pre><code>                                       2.5%         50%       97.5%        mean
+Annual Prob. Infection (in %)_1    3.725792    4.550274    5.282884    4.550489
+Year_ 2                         1978.514722 2001.244692 2019.794503 2000.258999
+Annual Prob. Infection (in %)_2    1.696148    4.617044    5.902337    4.407999</code></pre>
 </div>
 </div>
 <p>You can see here that this estimate is really uncertain, with a 95% credible interval ranging from 1980 to 2026.</p>
