@@ -1,0 +1,860 @@
+---
+title: "Simulation & Inference"
+format: html
+editor: visual
+execute:
+  warning: false
+  message: false
+---
+
+# Single coin
+
+```{r}
+library(extraDistr)
+
+n_tosses   <- 10
+prob_heads <- 0.5
+
+set.seed(123)
+
+coin_outcome <- rbern(n = n_tosses, prob = prob_heads)
+
+coin_outcome
+```
+
+```{r, message = FALSE}
+library(ggplot2)
+library(ggdist)
+library(dplyr)
+
+outcome_df <- data.frame(coin_outcome)
+  
+count_df <- outcome_df |> count(coin_outcome) |>
+  mutate(
+    coin_outcome = factor(coin_outcome, 
+                          levels = c(0, 1), 
+                          labels = c("Tails", "Heads")),
+    percentage = n / sum(n) * 100)
+
+# Plot
+ggplot(count_df, aes(x = coin_outcome, y = n)) +
+  geom_col(aes(fill = coin_outcome)) +
+  geom_text(aes(label = paste0(round(percentage), "%"), colour = coin_outcome), 
+            vjust = -0.5, size = 8) +
+  scale_fill_manual(values = c("Tails" = "grey70", "Heads" = "steelblue")) +
+  scale_colour_manual(values = c("Tails" = "grey70", "Heads" = "steelblue")) +
+  labs(x = NULL, y = "Count",
+       subtitle = paste("Probability of heads =", prob_heads )) +
+  scale_y_continuous(limits = c(0, n_tosses)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 16),
+        axis.title = element_text(size = 18, colour = "grey50"),
+        axis.line = element_line(colour = "grey65"),
+        legend.position = "none")
+```
+
+```{r}
+ggplot(count_df |> 
+         filter(coin_outcome == "Heads"), aes(x = coin_outcome, y = n)) +
+  geom_col(aes(fill = coin_outcome)) +
+  geom_text(aes(label = paste0(round(percentage), "%"), y = n / 2), 
+            , size = 8,
+            colour = "white") +
+  scale_fill_manual(values = c("Heads" = "steelblue")) +
+  geom_hline(yintercept = prob_heads * n_tosses, linetype = "dashed") +
+  labs(x = NULL, y = "Count",
+       title    = paste("# tosses:", n_tosses),
+       subtitle = paste("Probability of heads =", prob_heads )) +
+  scale_y_continuous(limits = c(0, n_tosses)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 16),
+        axis.title = element_text(size = 18, colour = "grey50"),
+        axis.line = element_line(colour = "grey65"),
+        legend.position = "none")
+```
+
+# Multiple coins
+
+```{r}
+set.seed(1706)
+
+n_tosses_per_coin <- 50
+n_coins           <- 10
+prob_heads        <- 0.6
+
+n_heads <- rbinom(n    = n_tosses_per_coin, 
+                  size = n_coins, 
+                  prob = prob_heads)
+```
+
+```{r}
+binomial_df <- data.frame(n_heads)
+
+ggplot(binomial_df, aes(n_heads)) +
+  geom_dotplot(fill = "steelblue", colour = "steelblue") +
+  labs(x = "# heads",
+       title    = paste0("Number of coins: ", n_coins),
+       subtitle = paste0("Number of tosses: ", n_tosses_per_coin)) +
+  theme_classic() +
+  theme(axis.line = element_line(colour = "grey65"),
+        axis.text = element_text(size = 16),
+        axis.line.y  = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y  = element_blank())
+```
+
+
+
+```{r}
+set.seed(1706)
+
+n_tosses_per_coin <- 10000
+n_coins           <- 100
+prob_heads        <- 0.6
+
+n_heads <- rbinom(n    = n_tosses_per_coin, 
+                  size = n_coins, 
+                  prob = prob_heads)
+
+binomial_df <- data.frame(n_heads)
+
+ggplot(binomial_df, aes(n_heads)) +
+  geom_histogram(fill = "white", colour = "steelblue", bins = 10) +
+  labs(x = "# heads",
+       title    = paste0("Number of coins: ", n_coins),
+       subtitle = paste0("Number of tosses: ", n_tosses_per_coin)) +
+  theme_classic() +
+  theme(axis.line = element_line(colour = "grey65"),
+        axis.text = element_text(size = 16),
+        axis.line.y  = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y  = element_blank())
+```
+
+```{r}
+mean(binomial_df$n_heads)
+sd(binomial_df$n_heads)
+```
+
+# Infection histories
+
+```{r}
+final_year    <- 8
+n_individuals <- 3
+
+outcome_matrix <- matrix(NA, 
+                         nrow = n_individuals,
+                         ncol = final_year)
+
+FOI                 <- 0.5
+prob_inf            <- rep(1 - exp(-FOI), n_individuals)
+previously_infected <- rep(0, n_individuals)
+
+set.seed(2236)
+
+for(year_of_age in 1:final_year)
+{
+  prob_inf <- ifelse(previously_infected, 0, prob_inf)
+  
+  outcomes <- rbern(n = n_individuals, prob = prob_inf)
+  
+  outcome_matrix[, year_of_age] <- outcomes
+  
+  previously_infected <- previously_infected | outcomes
+}
+```
+
+```{r}
+outcome_df <- data.frame(
+  individual   = rep(seq_len(n_individuals), each = final_year),
+  age          = rep(seq_len(final_year), times = n_individuals),
+  was_infected = as.vector(t(outcome_matrix)))
+
+ggplot(outcome_df, aes(age, as.factor(individual))) +
+  geom_point(size = 10, aes(shape = as.factor(was_infected),
+                            colour  = as.factor(was_infected)),
+             show.legend = FALSE) +
+  scale_shape_manual(values = c(1, 19)) +
+  scale_colour_manual(values = c("grey50", "steelblue")) +
+  labs(x = "Age") +
+  scale_x_continuous(breaks = 1:10) +
+  theme_classic() +
+  theme(axis.text    = element_text(size = 12),
+        axis.title   = element_text(size = 16),
+        axis.line    = element_line(colour = "grey65"),
+        axis.line.y  = element_blank(),
+        axis.text.y  = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank())
+```
+
+```{r}
+serostatus_df <- outcome_df |> 
+  group_by(individual) |> 
+  mutate(serostatus = cumsum(was_infected)) |> 
+  ungroup()
+```
+
+```{r}
+ggplot(serostatus_df, aes(age, as.factor(individual))) +
+  geom_point(size = 10, aes(shape = as.factor(serostatus),
+                            colour  = as.factor(serostatus)),
+             show.legend = FALSE) +
+  scale_shape_manual(values = c(1, 19)) +
+  scale_colour_manual(values = c("grey50", "#96595A")) +
+  labs(x = "Age") +
+  scale_x_continuous(breaks = 1:10) +
+  theme_classic() +
+  theme(axis.text    = element_text(size = 12),
+        axis.title   = element_text(size = 16),
+        axis.line    = element_line(colour = "grey65"),
+        axis.line.y  = element_blank(),
+        axis.text.y  = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank())
+```
+
+```{r}
+birth_df <- data.frame(individual = 1:3, 
+                       birth_year = 2023:2025)
+
+serostatus_by_year_df <- serostatus_df |> 
+  left_join(birth_df, by = "individual") |> 
+  mutate(year_sample = birth_year + age - 1)
+
+sample_2026_df <- serostatus_by_year_df |> filter(year_sample == 2026)
+  
+
+ggplot(sample_2026_df, aes(age)) +
+  geom_dotplot(aes(colour = as.factor(serostatus),
+                   fill   = as.factor(serostatus)),
+               dotsize = 3) +
+  scale_fill_manual(values = c("white", "#96595A")) +
+  scale_colour_manual(values = c("grey50", "#96595A")) +
+  scale_x_continuous(limits = c(1, final_year)) +
+  labs(x = "Age") +
+  theme_classic() +
+  theme(axis.text    = element_text(size = 12),
+        axis.title   = element_text(size = 16),
+        axis.line    = element_line(colour = "grey65"),
+        axis.line.y  = element_blank(),
+        axis.text.y  = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none")
+```
+
+## N = 1000
+
+```{r}
+final_year    <- 80
+n_individuals <- 1000
+
+outcome_matrix <- matrix(NA, 
+                         nrow = n_individuals,
+                         ncol = final_year)
+
+FOI                 <- 0.05
+prob_inf            <- rep(1 - exp(-FOI), n_individuals)
+previously_infected <- rep(0, n_individuals)
+
+set.seed(1534)
+
+for(year_of_age in 1:final_year)
+{
+  prob_inf <- ifelse(previously_infected, 0, prob_inf)
+  
+  outcomes <- rbern(n = n_individuals, prob = prob_inf)
+  
+  outcome_matrix[, year_of_age] <- outcomes
+  
+  previously_infected <- previously_infected | outcomes
+}
+
+outcome_df <- data.frame(
+  individual   = rep(seq_len(n_individuals), each = final_year),
+  age          = rep(seq_len(final_year), times = n_individuals),
+  was_infected = as.vector(t(outcome_matrix)))
+```
+
+```{r}
+serostatus_df <- outcome_df |> 
+  group_by(individual) |> 
+  mutate(serostatus = cumsum(was_infected)) |> 
+  ungroup()
+
+set.seed(1541)
+
+birth_df <- data.frame(individual = 1:n_individuals, 
+                       birth_year = sample(1947:2026,
+                                           size = n_individuals,
+                                           replace = TRUE))
+
+serostatus_by_year_df <- serostatus_df |> 
+  left_join(birth_df, by = "individual") |> 
+  mutate(year_sample = birth_year + age - 1)
+
+sample_2026_df <- serostatus_by_year_df |> filter(year_sample == 2026)
+```
+
+```{r}
+ggplot(sample_2026_df, aes(age)) +
+  geom_dots(aes(colour = as.factor(serostatus),
+                fill   = as.factor(serostatus),
+                group  = NA,
+                order  = serostatus),
+            binwidth = 1, layout = "bin",
+            overflow = "compress") +
+  scale_fill_manual(values = c("white", "#96595A")) +
+  scale_colour_manual(values = c("grey50", "#96595A")) +
+  scale_x_continuous(limits = c(0.5, final_year + 0.5)) +
+  labs(x = "Age") +
+  theme_classic() +
+  theme(axis.text    = element_text(size = 12),
+        axis.title   = element_text(size = 16),
+        axis.line    = element_line(colour = "grey65"),
+        axis.line.y  = element_blank(),
+        axis.text.y  = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none")
+```
+
+```{r}
+seropositive_proportion_by_age_df <- sample_2026_df |> group_by(age) |> 
+  summarise(n_seropositive = sum(serostatus),
+            n_individuals  = n()) |> 
+  mutate(proportion = n_seropositive / n_individuals)
+  
+```
+
+```{r}
+ggplot(seropositive_proportion_by_age_df, aes(age, proportion)) +
+  geom_segment(
+    aes(x = age, xend = age, y = 0, yend = proportion),
+    colour = "grey95",
+    linewidth = 0.7
+  ) +
+  geom_point(colour = "#96595A", size = 2) +
+  labs(x = "Age", y = "Proportion seropositive") +
+  theme_classic() +
+  theme(
+    axis.text  = element_text(size = 12),
+    axis.title = element_text(size = 16),
+    axis.line  = element_line(colour = "grey65"))
+```
+
+# Inference
+
+```{r}
+set.seed(1711)
+n_heads <- rbinom(n = 4, size = 100, prob = 0.5)
+
+coin_sims_df <- data.frame(n_heads = n_heads)
+
+ggplot(coin_sims_df, aes(n_heads)) +
+  geom_dotplot(colour  = "steelblue",
+               fill    = "steelblue",
+               dotsize = 2) +
+  geom_vline(xintercept = 50, linetype = "dotted", colour = "grey50") +
+  labs(x = "# heads") +
+  scale_x_continuous(limits = c(40, 60)) +
+  theme_classic() +
+  theme(axis.text    = element_text(size = 12),
+        axis.title   = element_text(size = 16),
+        axis.line    = element_line(colour = "grey65"),
+        axis.line.y  = element_blank(),
+        axis.text.y  = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none")
+```
+
+```{r}
+set.seed(1111)
+
+n_sims <- 1000
+
+n_heads <- rbinom(n = 1000, size = 100, prob = 0.5)
+
+coin_sims_df <- data.frame(n_heads = n_heads) 
+
+ggplot(coin_sims_df, aes(n_heads)) +
+  geom_dots(colour  = "steelblue",
+               fill    = "steelblue") +
+  geom_vline(xintercept = 50, linetype = "dotted", colour = "grey50") +
+  labs(x = "# heads") +
+  theme_classic() +
+  theme(axis.text    = element_text(size = 12),
+        axis.title   = element_text(size = 16),
+        axis.line    = element_line(colour = "grey65"),
+        axis.line.y  = element_blank(),
+        axis.text.y  = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none")
+```
+
+```{r}
+count_df <- coin_sims_df |>
+  count(n_heads) |>
+  mutate(rel_freq = n / n_sims)
+  
+ggplot(count_df, aes(x = n_heads, y = n)) +
+  geom_col(
+    width  = 1,
+    colour = "white",
+    fill   = "steelblue") +
+  geom_vline(xintercept = 50, linetype = "dotted", colour = "grey50") +
+  labs(x = "# heads", y = "Count") +
+  theme_classic() +
+  theme(axis.text    = element_text(size = 12),
+        axis.title   = element_text(size = 16),
+        axis.line    = element_line(colour = "grey65"))
+```
+
+```{r}
+g <- ggplot(count_df, aes(x = n_heads, y = rel_freq)) +
+  geom_col(
+    width  = 1,
+    colour = "white",
+    fill   = "steelblue") +
+  geom_vline(xintercept = 50, linetype = "dotted", colour = "grey50") +
+  labs(x     = "# heads", y = "Count / # experiments",
+       subtitle = "Relative frequency",
+       caption   = "# experiments = 1000") +
+  theme_classic() +
+  theme(axis.text    = element_text(size = 12),
+        axis.title   = element_text(size = 16),
+        axis.line    = element_line(colour = "grey65"))
+
+g
+```
+
+```{r}
+g +
+  stat_function(
+    fun = dbinom,
+    args = list(size = 100, prob = 0.5),
+    xlim = c(0, 100),
+    n = 101,
+    geom = "line",
+    colour = "red") +
+  theme_classic()
+```
+
+```{r}
+set.seed(1448)
+
+n_sims <- 1e6
+
+n_heads <- rbinom(n = n_sims, size = 100, prob = 0.5)
+
+count_df <- data.frame(n_heads = n_heads) |> 
+  count(n_heads) |>
+  mutate(rel_freq = n / n_sims)
+
+ggplot(count_df, aes(x = n_heads, y = rel_freq)) +
+  geom_col(
+    width  = 1,
+    colour = "white",
+    fill   = "steelblue",
+    alpha = 0.5) +
+  geom_vline(xintercept = 50, linetype = "dotted", colour = "grey50") +
+  labs(x     = "# heads", y = "Count / # experiments",
+       subtitle = "Relative frequency",
+       caption   = "# experiments = infinite") +
+  stat_function(
+    fun = dbinom,
+    args = list(size = 100, prob = 0.5),
+    xlim = c(0, 100),
+    n = 101,
+    geom = "line",
+    colour = "#E66101") +
+  theme_classic() +
+  theme(axis.text    = element_text(size = 12),
+        axis.title   = element_text(size = 16),
+        axis.line    = element_line(colour = "grey65"))
+```
+
+```{r}
+ggplot() +
+  stat_function(
+    fun    = dbinom,
+    args   = list(size = 100, prob = 0.5),
+    xlim   = c(0, 100),
+    n      = 101,
+    geom   = "line",
+    colour = "#E66101",
+    linewidth = 2) +
+  geom_vline(xintercept = 50, linetype = "dotted", colour = "grey50") +
+  geom_segment(aes(x = 60, xend = 60, y = 0, 
+                   yend = dbinom(60, size = 100, prob = 0.5)),
+               colour = "grey70", linewidth = 1) +
+  geom_point(aes(x = 60, y = 0),colour = "steelblue",
+             size = 3) +
+  annotate(
+    "text",
+    x = 60,
+    y = dbinom(60, size = 100, prob = 0.5),
+    label = round(dbinom(60, size = 100, prob = 0.5), 3),
+    hjust = -0.2,
+    vjust = -0.5,
+    size = 5) +
+  labs(x        = "# heads", y = "Relative frequency") +
+  coord_cartesian(xlim = c(25, 75)) +
+  scale_y_continuous(limits = c(0, 0.1)) +
+  theme_classic() +
+  theme(axis.text  = element_text(size = 12),
+        axis.title = element_text(size = 16),
+        axis.line  = element_line(colour = "grey65"))
+```
+
+```{r}
+model_2_clr <-  "#1B9E77"  # green/teal
+
+model_2_prob <- 0.6
+
+ggplot() +
+  stat_function(
+    fun    = dbinom,
+    args   = list(size = 100, prob = model_2_prob),
+    xlim   = c(0, 100),
+    n      = 101,
+    geom   = "line",
+    colour = model_2_clr,
+    linewidth = 2) +
+  geom_vline(xintercept = model_2_prob * 100, 
+             linetype = "dotted", 
+             colour = "grey50") +
+  geom_segment(aes(x = 60, xend = 60, y = 0, 
+                   yend = dbinom(60, size = 100, prob = model_2_prob)),
+               colour = "grey70", linewidth = 1) +
+  geom_point(aes(x = 60, y = 0),colour = "steelblue",
+             size = 3) +
+  annotate(
+    "text",
+    x = 60,
+    y = dbinom(60, size = 100, prob = model_2_prob),
+    label = round(dbinom(60, size = 100, prob = model_2_prob), 3),
+    hjust = -0.2,
+    vjust = -0.5,
+    size = 5) +
+  labs(x        = "# heads", y = "Relative frequency") +
+  coord_cartesian(xlim = c(40, 80)) +
+  scale_y_continuous(limits = c(0, 0.1)) +
+  theme_classic() +
+  theme(axis.text  = element_text(size = 12),
+        axis.title = element_text(size = 16),
+        axis.line  = element_line(colour = "grey65"))
+```
+
+## Multiple measurements
+
+```{r}
+
+points_df <- data.frame(
+  x = c(60, 45),
+  y = 0,
+  hjust = c(-0.3, 1.3))
+
+ggplot() +
+  stat_function(
+    fun    = dbinom,
+    args   = list(size = 100, prob = 0.5),
+    xlim   = c(0, 100),
+    n      = 101,
+    geom   = "line",
+    colour = "#E66101",
+    linewidth = 2) +
+  geom_vline(xintercept = 50, linetype = "dotted", colour = "grey50") +
+  geom_segment(data = points_df, 
+               aes(x = x, xend = x, y = 0,
+                   yend = dbinom(x, size = 100, prob = 0.5)),
+               colour = "grey70",
+               linewidth = 1) +
+  geom_point(data = points_df, aes(x, y), colour = "steelblue",
+             size = 3) +
+  geom_text(data = points_df, 
+            aes(x = x, 
+                y = dbinom(x, size = 100, prob = 0.5),
+                label = round(dbinom(x, size = 100, prob = 0.5), 3),
+                hjust = hjust),
+            vjust = -0.4, size = 5) +
+  labs(x        = "# heads", y = "Relative frequency") +
+  coord_cartesian(xlim = c(25, 75)) +
+  scale_y_continuous(limits = c(0, 0.1)) +
+  theme_classic() +
+  theme(axis.text  = element_text(size = 12),
+        axis.title = element_text(size = 16),
+        axis.line  = element_line(colour = "grey65"))
+```
+
+## Log-likelihood shape
+
+```{r}
+ggplot() +
+  stat_function(
+    fun    = dbinom,
+    args   = list(size = 100, prob = 0.5),
+    xlim   = c(0, 100),
+    n      = 101,
+    geom   = "line",
+    colour = "#E66101",
+    linewidth = 2) +
+  geom_segment(aes(x = 60, xend = 60, y = 0, 
+                   yend = dbinom(60, size = 100, prob = 0.5)),
+               colour = "grey70", linewidth = 1) +
+  geom_point(aes(x = 60, y = 0),colour = "steelblue",
+             size = 3) +
+  annotate(
+    "text",
+    x     = 60,
+    y     = dbinom(60, size = 100, prob = 0.5),
+    label = paste0(
+      round(dbinom(60, size = 100, prob = 0.5), 3),
+      " (",
+      round(dbinom(60, size = 100, prob = 0.5, log = TRUE), 2),
+      ")"
+    ),
+    hjust = -0.2,
+    vjust = -0.5,
+    size = 5
+  ) +
+  labs(x        = "# heads", y = "Likelihood",
+       subtitle = "p = 0.5") +
+  coord_cartesian(xlim = c(25, 75)) +
+  scale_y_continuous(limits = c(0, 0.1)) +
+  theme_classic() +
+  theme(axis.text  = element_text(size = 12),
+        axis.title = element_text(size = 16),
+        axis.line  = element_line(colour = "grey65"))
+```
+
+```{r}
+log_likelihood_df <- data.frame(
+  p       = 0.5, 
+  log_lik = dbinom(60, size = 100, prob = 0.5, log = TRUE))
+
+plot_log_lik <- function(log_likelihood_df)
+{
+  ggplot(log_likelihood_df, aes(p, log_lik)) +
+  geom_point(size = 4, colour = "#CE93D8") +
+  scale_x_continuous(limits = c(0.5, 0.7)) +
+  scale_y_continuous(limits = c(-5, -2)) +
+  labs(x = "Model (p)", y = "Log-likelihood") +
+  theme_classic() +
+  theme(axis.text  = element_text(size = 12),
+        axis.title = element_text(size = 16),
+        axis.line  = element_line(colour = "grey65"))
+}
+
+plot_log_lik(log_likelihood_df)
+```
+
+```{r}
+transparency <- 0.7
+
+ggplot() +
+  stat_function(
+    fun    = dbinom,
+    args   = list(size = 100, prob = 0.5),
+    xlim   = c(0, 100),
+    n      = 101,
+    geom   = "line",
+    colour = "#E66101",
+    linewidth = 2,
+    alpha     = transparency) +
+  geom_segment(aes(x = 60, xend = 60, y = 0, 
+                   yend = dbinom(60, size = 100, prob = 0.55)),
+               colour = "grey70", linewidth = 1) +
+  
+  stat_function(
+    fun    = dbinom, args   = list(size = 100, prob = 0.55),
+    xlim   = c(0, 100),
+    n      = 101,
+    geom   = "line",
+    colour = "#1B9E77",
+    linewidth = 2,
+    alpha     = transparency) +
+  geom_point(aes(x = 60, y = 0),colour = "steelblue",
+             size = 3) +
+  annotate(
+    "text",
+    x     = 60,
+    y     = dbinom(60, size = 100, prob = 0.5),
+    label = paste0(
+      round(dbinom(60, size = 100, prob = 0.5), 3),
+      " (",
+      round(dbinom(60, size = 100, prob = 0.5, log = TRUE), 2),
+      ")"
+    ),
+    hjust = -0.15,
+    vjust = -0.5,
+    size = 5
+  ) +
+  annotate(
+    "text",
+    x     = 60,
+    y     = dbinom(60, size = 100, prob = 0.55),
+    label = paste0(
+      round(dbinom(60, size = 100, prob = 0.55), 3),
+      " (",
+      round(dbinom(60, size = 100, prob = 0.55, log = TRUE), 2),
+      ")"
+    ),
+    hjust = -0.15,
+    vjust = -0.5,
+    size = 5
+  ) +
+  labs(x        = "# heads", y = "Likelihood",
+       subtitle = "p = (0.50, 0.55)") +
+  coord_cartesian(xlim = c(25, 75)) +
+  scale_y_continuous(limits = c(0, 0.1)) +
+  theme_classic() +
+  theme(axis.text  = element_text(size = 12),
+        axis.title = element_text(size = 16),
+        axis.line  = element_line(colour = "grey65"))
+```
+
+```{r}
+prob_values <- c(0.50, 0.55)
+
+log_likelihood_df <- data.frame(
+  p       = prob_values, 
+  log_lik = dbinom(60, size = 100, prob = prob_values, log = TRUE))
+
+plot_log_lik(log_likelihood_df)
+```
+
+```{r}
+transparency <- 0.7
+
+prob_values <- seq(0.50, 0.70, by = 0.02)
+
+library(tidyr)
+
+models_df <- expand_grid(
+  x    = 0:100,
+  prob = prob_values) |>
+  mutate(likelihood = dbinom(x, size = 100, prob = prob))
+
+ggplot(models_df, aes(x = x, y = likelihood, group = prob)) +
+  geom_line(linewidth = 2, alpha = transparency, colour = "grey50") +
+    geom_point(aes(x = 60, y = 0),colour = "steelblue",
+             size = 3) +
+  labs(x        = "# heads", y = "Likelihood",
+       subtitle = "p = Many") +
+  coord_cartesian(xlim = c(35, 85)) +
+  scale_y_continuous(limits = c(0, 0.1)) +
+  theme_classic() +
+  theme(axis.text  = element_text(size = 12),
+        axis.title = element_text(size = 16),
+        axis.line  = element_line(colour = "grey65"))
+```
+
+```{r}
+prob_values <- seq(0.50, 0.70, by = 0.005)
+
+log_likelihood_df <- data.frame(
+  p       = prob_values, 
+  log_lik = dbinom(60, size = 100, prob = prob_values, log = TRUE))
+
+plot_log_lik(log_likelihood_df) 
+```
+
+```{r}
+plot_log_lik(log_likelihood_df |> mutate(log_lik = -log_lik)) +
+  scale_y_continuous(limits = c(2, 5))
+```
+
+
+## Log-likelihood function
+
+```{r}
+log_likelihood_function <- function(FOI)
+{
+  if(FOI < 0) return -Inf
+  
+  y_a     <- seropositive_proportion_by_age_df$n_seropositive
+  
+  n_a     <- seropositive_proportion_by_age_df$n_individuals
+  
+  ages    <- seropositive_proportion_by_age_df$age
+  
+  prob_a  <-  1 - exp(-FOI * ages) # Serocatalytic model
+  
+  log_likelihood_values <- dbinom(x    = y_a,
+                                  size = n_a,
+                                  prob = prob_a,
+                                  log  = TRUE)
+  
+  -sum(log_likelihood_values)
+}
+```
+
+```{r}
+optim_output <- optim(par = c(FOI = 0.01),
+                      fn =  log_likelihood_function)
+```
+```{r}
+optim_output
+```
+
+```{r}
+ages          <- seropositive_proportion_by_age_df$age
+estimated_p_a <- 1 - exp(-optim_output$par * ages)
+
+estimated_p_a_df <- data.frame(age = ages, 
+                               proportion = estimated_p_a)
+
+ggplot(seropositive_proportion_by_age_df, aes(age, proportion)) +
+  geom_point(colour = "#96595A", size = 2, shape = 1) +
+  labs(x = "Age", y = "Proportion seropositive") +
+  geom_line(data = estimated_p_a_df, linewidth = 2, colour = "#3F5F73") +
+  theme_classic() +
+  theme(
+    axis.text  = element_text(size = 12),
+    axis.title = element_text(size = 16),
+    axis.line  = element_line(colour = "grey65"))
+```
+
+```{r}
+set.seed(1501)
+estimate_samples <- rnorm(1000, mean = 0.048, sd = 0.001)
+```
+
+```{r}
+# Summary statistics
+
+mean_est <- mean(estimate_samples)
+sd_est   <- sd(estimate_samples)
+ci       <- quantile(estimate_samples, c(0.025, 0.975))
+
+label_text <- sprintf(
+  "Mean = %.4f\nSD = %.4f\n95%% CI = [%.4f, %.4f]",
+  mean_est, sd_est, ci[1], ci[2]
+)
+
+ggplot(data.frame(estimate_samples), aes(estimate_samples)) +
+  geom_histogram(bins = 30, colour = "white", fill = "#3F5F73") +
+  annotate(
+    "text",
+    x = Inf, y = Inf,
+    label = label_text,
+    hjust = 1.1, vjust = 1.3,
+    size = 5) +
+  labs(x = "Force of infection") +
+  theme_classic() +
+  theme(
+    axis.text  = element_text(size = 12),
+    axis.title = element_text(size = 16),
+    axis.line  = element_line(colour = "grey65"),
+    axis.line.y  = element_blank(),
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank())
+```
+
