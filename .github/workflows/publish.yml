@@ -36,6 +36,7 @@ jobs:
             any::tidyverse
             any::ggpubr
             any::remotes
+            any::extraDistr
 
       - name: Cache Rsero and its compiled dependencies (rstan/StanHeaders)
         id: cache-rsero
