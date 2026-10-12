@@ -17,6 +17,8 @@ website:
             text: "Introduction to serology"
           - href: sessions/serocatalytic-models-practical.qmd
             text: "Serocatalytic models"
+      - href: code/Simulation_and_Inference.qmd
+        text: Code
 
 format:
   html:

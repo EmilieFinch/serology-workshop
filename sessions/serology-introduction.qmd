@@ -12,6 +12,8 @@ execute:
 
 In this practical, we are going to explore the concept of the **force of infection** and how it relates to seroprevalence.
 
+Download the example cross-sectional serological dataset we will be working with here: [SeroStudy.csv](../data/SeroStudy.csv)
+
 ## Objectives
 
 The aims of this practical are to:
@@ -22,7 +24,7 @@ The aims of this practical are to:
 
 ## Set-up: load packages and datasets
 
-First, we will load in the R packages and data that we need. Take a quick look at the serosurvey dataset we are using.
+First, we will load in the R packages and data that we need. Take a quick look at the serosurvey dataset we are using. Note when loading this in on the R instance you will want to use this file path: `read.csv("./SeroStudy.csv")`.
 
 ```{r}
 library(tidyverse)

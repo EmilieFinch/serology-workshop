@@ -11,17 +11,17 @@ execute:
 
 ## Introduction
 
-In this practical, we are going to be fitting serocatalytic models to cross-sectional serological data using the R package [RSero](%22https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012777#pcbi.1012777.ref024%22). In `RSero` the models are fitted to data using Markov Chain Monte Carlo implemented through `Stan`, a probabalistic programming language.
+In this practical, we are going to be fitting serocatalytic models to cross-sectional serological data using the R package [Rsero](%22https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012777#pcbi.1012777.ref024%22). In `Rsero` the models are fitted to data using Markov Chain Monte Carlo implemented through `Stan`, a probabalistic programming language.
 
 ## Objectives
 
 The aims of this practical are to:
 
-- Estimate the force of infection by fitting serocatalytic models to serological datasets using MCMC
+-   Estimate the force of infection by fitting serocatalytic models to serological datasets using MCMC
 
-- Compare different models with different assumptions about historical transmission and decide which one fits the data best
+-   Compare different models with different assumptions about historical transmission and decide which one fits the data best
 
-- Reconstruct past circulation of pathogens in the population
+-   Reconstruct past circulation of pathogens in the population
 
 ## Set-up: load packages and datasets
 
@@ -35,10 +35,10 @@ library(ggpubr) # we use this to arrange and save multiple plots together
 
 and download the simulated cross-sectional serology datasets used in this practical:
 
-- [Simulated dataset 1](../data/simulated-data1.csv)
-- [Simulated dataset 2](../data/simulated-data2.csv)
+-   [Simulated dataset 1](../data/simulated-data1.csv)
+-   [Simulated dataset 2](../data/simulated-data2.csv)
 
-Each file contains a simulated dataset for 1000 participants, with sampling in 2024. The dataset has columns `participant_id`, `age`, and `serostatus` for 1,000 participants.
+Each file contains a simulated dataset for 1000 participants, with sampling in 2024. The dataset has columns `participant_id`, `age`, and `serostatus` for 1,000 participants. Note when loading this in on the R instance you will want to use this file path: `read.csv("./simulated-data1.csv`.
 
 ```{r}
 data_1 <- read.csv("../data/simulated-data1.csv")
@@ -47,7 +47,7 @@ data_2 <- read.csv("../data/simulated-data2.csv")
 
 ## Visualising the data
 
-Let's start with the first simulation dataset (`data+1`). We'll group the data into 10 year age bins and then visualise seroprevalence by age.
+Let's start with the first simulation dataset (`data_1`). We'll group the data into 10 year age bins and then visualise seroprevalence by age.
 
 ```{r}
 agg_data_1 <- data_1 |> 
@@ -84,10 +84,8 @@ sero_data2 <- SeroData(age_at_sampling = data_2$age, Y = data_2$serostatus, samp
 
 We will now define some serocatalytic models to test.
 
-In `RSero` you can specify several different models of force-of-infection over time. We will look at the following.  
-- Constant. This is the simplest (classic) serocatalytic model which assumes a constant force of infection over time. This works well for endemic pathogens that circulate continuously in the population and are fully immunising.
-- Piecewise-constant. This is an extension of the classic model where we assume there have been several periods of constant force of infection. This would work well (for example) if an intervention had recently been introduced which lowered the force of infection at a particular point in time. 
-- Outbreak. This model describes pathogen with epidemic dynamics where there have been `K` epidemics in the past. The model will estimate the force of infection and the timing of `K` previous outbreaks, assuming that FOI can be described by `K` Gaussian-shaped curves.
+In `RSero` you can specify several different models of force-of-infection over time. We will look at the following.\
+- Constant. This is the simplest (classic) serocatalytic model which assumes a constant force of infection over time. This works well for endemic pathogens that circulate continuously in the population and are fully immunising. - Piecewise-constant. This is an extension of the classic model where we assume there have been several periods of constant force of infection. This would work well (for example) if an intervention had recently been introduced which lowered the force of infection at a particular point in time. - Outbreak. This model describes pathogen with epidemic dynamics where there have been `K` epidemics in the past. The model will estimate the force of infection and the timing of `K` previous outbreaks, assuming that FOI can be described by `K` Gaussian-shaped curves.
 
 ```{r}
 constant_model <- FOImodel(type = "constant")
@@ -175,6 +173,6 @@ We set K=1 when using piecewise and outbreak models in the first part but you ca
 
 ## Further reading
 
-- [RSero paper](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012777#pcbi.1012777.ref024%22)
-- [Salje et al 2016 - reconstructing historical CHIKV transmission in the Philippines](https://pmc.ncbi.nlm.nih.gov/articles/PMC4721913/)
-- [Hens et al 2009 - a nice review of serocatalytic models](https://www.cambridge.org/core/journals/epidemiology-and-infection/article/seventyfive-years-of-estimating-the-force-of-infection-from-current-status-data/FC65967F1DA0A28401A43BBD9927C32E)
+-   [RSero paper](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012777#pcbi.1012777.ref024%22)
+-   [Salje et al 2016 - reconstructing historical CHIKV transmission in the Philippines](https://pmc.ncbi.nlm.nih.gov/articles/PMC4721913/)
+-   [Hens et al 2009 - a nice review of serocatalytic models](https://www.cambridge.org/core/journals/epidemiology-and-infection/article/seventyfive-years-of-estimating-the-force-of-infection-from-current-status-data/FC65967F1DA0A28401A43BBD9927C32E)
