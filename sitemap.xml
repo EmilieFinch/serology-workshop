@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://EmilieFinch.github.io/serology-workshop/index.html</loc>
-    <lastmod>2026-10-09T08:52:52.782Z</lastmod>
-  </url>
-  <url>
-    <loc>https://EmilieFinch.github.io/serology-workshop/sessions/serology-introduction.html</loc>
-    <lastmod>2026-10-09T08:52:52.782Z</lastmod>
+    <loc>https://EmilieFinch.github.io/serology-workshop/code/Simulation_and_Inference.html</loc>
+    <lastmod>2026-10-12T11:03:55.258Z</lastmod>
   </url>
   <url>
     <loc>https://EmilieFinch.github.io/serology-workshop/sessions/serocatalytic-models-practical.html</loc>
-    <lastmod>2026-10-09T08:52:52.782Z</lastmod>
+    <lastmod>2026-10-12T11:03:55.260Z</lastmod>
+  </url>
+  <url>
+    <loc>https://EmilieFinch.github.io/serology-workshop/sessions/serology-introduction.html</loc>
+    <lastmod>2026-10-12T11:03:55.260Z</lastmod>
+  </url>
+  <url>
+    <loc>https://EmilieFinch.github.io/serology-workshop/index.html</loc>
+    <lastmod>2026-10-12T11:03:55.260Z</lastmod>
   </url>
 </urlset>

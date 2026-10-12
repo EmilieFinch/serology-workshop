@@ -149,6 +149,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </li>  
     </ul>
   </li>
+  <li class="nav-item">
+    <a class="nav-link" href="../code/Simulation_and_Inference.html"> 
+<span class="menu-text">Code</span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -205,7 +209,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1>Serocatalytic models practical</h1>
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p>In this practical, we are going to be fitting serocatalytic models to cross-sectional serological data using the R package <a href="&quot;https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012777#pcbi.1012777.ref024&quot;">RSero</a>. In <code>RSero</code> the models are fitted to data using Markov Chain Monte Carlo implemented through <code>Stan</code>, a probabalistic programming language.</p>
+<p>In this practical, we are going to be fitting serocatalytic models to cross-sectional serological data using the R package <a href="&quot;https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012777#pcbi.1012777.ref024&quot;">Rsero</a>. In <code>Rsero</code> the models are fitted to data using Markov Chain Monte Carlo implemented through <code>Stan</code>, a probabalistic programming language.</p>
 </section>
 <section id="objectives" class="level2">
 <h2 class="anchored" data-anchor-id="objectives">Objectives</h2>
@@ -232,7 +236,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><a href="../data/simulated-data1.csv">Simulated dataset 1</a></li>
 <li><a href="../data/simulated-data2.csv">Simulated dataset 2</a></li>
 </ul>
-<p>Each file contains a simulated dataset for 1000 participants, with sampling in 2024. The dataset has columns <code>participant_id</code>, <code>age</code>, and <code>serostatus</code> for 1,000 participants.</p>
+<p>Each file contains a simulated dataset for 1000 participants, with sampling in 2024. The dataset has columns <code>participant_id</code>, <code>age</code>, and <code>serostatus</code> for 1,000 participants. Note when loading this in on the R instance you will want to use this file path: <code>read.csv("./simulated-data1.csv</code>.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -243,7 +247,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="visualising-the-data" class="level2">
 <h2 class="anchored" data-anchor-id="visualising-the-data">Visualising the data</h2>
-<p>Let’s start with the first simulation dataset (<code>data+1</code>). We’ll group the data into 10 year age bins and then visualise seroprevalence by age.</p>
+<p>Let’s start with the first simulation dataset (<code>data_1</code>). We’ll group the data into 10 year age bins and then visualise seroprevalence by age.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -348,8 +352,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output cell-output-stdout">
 <pre><code>  model elpd_diff se_diff p_worse       diag_diff diag_elpd
  model1       0.0     0.0      NA                          
- model2      -1.1     0.2    1.00 |elpd_diff| &lt; 4          
- model3    -133.9    14.0    1.00                          </code></pre>
+ model2      -0.4     0.5    0.80 |elpd_diff| &lt; 4          
+ model3    -133.1    14.0    1.00                          </code></pre>
 </div>
 </div>
 <p>From this we can tell that model 3 (outbreak model) is clearly the worst at explaining the data. However, models 1 and 2 seem very similar and there’s a very small difference in elpd between them. Let’s take a look at the estimated FOI for both.</p>
@@ -381,10 +385,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">parameters_credible_intervals</span>(piecewise_fit_1)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>                                       2.5%         50%       97.5%        mean
-Annual Prob. Infection (in %)_1    3.725792    4.550274    5.282884    4.550489
-Year_ 2                         1978.514722 2001.244692 2019.794503 2000.258999
-Annual Prob. Infection (in %)_2    1.696148    4.617044    5.902337    4.407999</code></pre>
+<pre><code>                                        2.5%          50%       97.5%
+Annual Prob. Infection (in %)_1    0.3048975    0.9205434    5.206591
+Year_ 2                         1994.6832418 2024.6552231 2033.675972
+Annual Prob. Infection (in %)_2    4.1093153    4.7383098    5.286783
+                                       mean
+Annual Prob. Infection (in %)_1    1.920750
+Year_ 2                         2021.851622
+Annual Prob. Infection (in %)_2    4.738982</code></pre>
 </div>
 </div>
 <p>You can see here that this estimate is really uncertain, with a 95% credible interval ranging from 1980 to 2026.</p>
